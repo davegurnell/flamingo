@@ -104,7 +104,7 @@ function updateEnemyGroup(group) {
   game.physics.arcade.overlap(player, group, function (player, enemy) {
     enemy.kill();
     group.remove(enemy);
-    game.debug.text(--score, 10, 20);
+    updateScore(-5);
   }, null, this);
 }
 
@@ -163,7 +163,7 @@ function updateFoodGroup(group) {
   game.physics.arcade.overlap(player, group, function(player, food) {
     food.kill();
     group.remove(food);
-    game.debug.text(++score, 10, 20);
+    updateScore(+1);
   }, null, this);
 }
 
@@ -172,6 +172,11 @@ function updateFood(food, group) {
   food.body.velocity.y += Math.random() * 50 - 25;
   if(food.body.velocity.x > 0) food.scale.x = -1;
   if(food.body.velocity.x < 0) food.scale.x = +1;
+}
+
+function updateScore(delta) {
+  score = Math.max(0, score + delta);
+  game.debug.text(score, 10, 20);
 }
 
 function quit(pointer) {

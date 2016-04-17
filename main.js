@@ -1,79 +1,90 @@
 var game        = new Phaser.Game(window.innerWidth, window.innerHeight, Phaser.AUTO, 'game');
 var cursors     = null;
 var pad1        = null;
-var flamingo    = null;
-var fish        = null;
-var shrimp      = null;
+var player      = null;
+var playerMask  = null;
+var enemy       = null;
+var food        = null;
 var maxVelocity = 750;
 var score       = 0;
 var useGamepad  = false;
 
 function preload() {
-  game.load.image('flamingo', 'assets/flamingo.png');
-  game.load.image('fish', 'assets/shark.png');
-  game.load.image('shrimp', 'assets/shrimp.gif');
+  game.load.image('player', 'assets/flamingo.png');
+  game.load.image('playerMask', 'assets/flamingo_mask.png');
+  game.load.image('enemy', 'assets/shark.png');
+  game.load.image('food', 'assets/shrimp.gif');
 }
 
 function create() {
   game.input.gamepad.start();
   game.stage.backgroundColor = '#77aaff';
 
-  pad1     = game.input.gamepad.pad1;
-  cursors  = game.input.keyboard.createCursorKeys();
-  flamingo = createFlamingo(game);
-  fish     = createFishGroup(game);
-  shrimp   = createShrimpGroup(game);
+  pad1       = game.input.gamepad.pad1;
+  cursors    = game.input.keyboard.createCursorKeys();
+  player     = createPlayer(game);
+  playerMask = createPlayerMask(game, player);
+  enemy      = createEnemyGroup(game);
+  food       = createFoodGroup(game);
 }
 
 function update() {
-  keyboardInput(flamingo);
-  updateFlamingo(flamingo);
-  updateFishGroup(fish);
-  updateShrimpGroup(shrimp);
+  keyboardInput(player);
+  updatePlayer(player);
+  updateEnemyGroup(enemy);
+  updateFoodGroup(food);
 }
 
-function keyboardInput(flamingo) {
+function keyboardInput(player) {
   if(useGamepad) {
-    flamingo.body.velocity.x = maxVelocity * pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X);
-    flamingo.body.velocity.y = maxVelocity * pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y);
+    player.body.velocity.x = maxVelocity * pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_X);
+    player.body.velocity.y = maxVelocity * pad1.axis(Phaser.Gamepad.XBOX360_STICK_LEFT_Y);
   } else {
-    if(cursors.left.isDown)  flamingo.body.velocity.x = -maxVelocity;
-    if(cursors.right.isDown) flamingo.body.velocity.x = +maxVelocity;
-    if(cursors.up.isDown)    flamingo.body.velocity.y = -maxVelocity;
-    if(cursors.down.isDown)  flamingo.body.velocity.y = +maxVelocity;
+    if(cursors.left.isDown)  player.body.velocity.x = -maxVelocity;
+    if(cursors.right.isDown) player.body.velocity.x = +maxVelocity;
+    if(cursors.up.isDown)    player.body.velocity.y = -maxVelocity;
+    if(cursors.down.isDown)  player.body.velocity.y = +maxVelocity;
   }
 }
 
-function createFlamingo(game) {
-  var flamingo = game.add.sprite(0, 0, 'flamingo');
-  game.physics.arcade.enable(flamingo);
-  flamingo.body.bounce.x = .2;
-  flamingo.body.bounce.y = .2;
-  flamingo.body.drag.x = 1250;
-  flamingo.body.drag.y = 1250;
-  flamingo.body.collideWorldBounds = true;
-  flamingo.anchor.setTo(0.5, 0.5);
-  return flamingo;
+function createPlayer(game) {
+  var player = game.add.sprite(0, 0, 'player');
+  game.physics.arcade.enable(player);
+  player.body.bounce.x = .2;
+  player.body.bounce.y = .2;
+  player.body.drag.x = 1250;
+  player.body.drag.y = 1250;
+  player.body.collideWorldBounds = true;
+  player.anchor.setTo(0.5, 0.5);
+  return player;
 }
 
-function updateFlamingo(flamingo) {
-  var xFlip = flamingo.body.velocity.x > 0 ? -1 : 1;
-  flamingo.scale.x = (1 + 0.001 * Math.min(score, 10000)) * xFlip;
-  flamingo.scale.y = (1 + 0.001 * Math.min(score, 10000));
+function createPlayerMask(game, player) {
+  var playerMask = player.addChild(game.make.sprite(0, 0, 'playerMask'));
+  playerMask.anchor.setTo(0.5, 0.5);
+  return playerMask;
 }
 
-function createFishGroup(game) {
-  var fish = game.add.physicsGroup(Phaser.Physics.ARCADE);
-  game.physics.arcade.enable(fish);
-  return fish;
+function updatePlayer(player) {
+  if(player.body.velocity.x > 0) player.scale.x = -1;
+  if(player.body.velocity.x < 0) player.scale.x = +1;
+  var maskAlpha = Math.min(1.0, Math.max(0.0, score / 100.0));
+  console.log(maskAlpha);
+  playerMask.alpha = maskAlpha;
 }
 
-function createFish(group) {
-  var fish = group.create(game.world.randomX, game.world.randomY, 'fish');
-  fish.body.collideWorldBounds = true;
-  fish.pursuitAngle = (Math.random() * 2 - 1) * Math.PI / 6;
-  fish.anchor.setTo(0.5, 0.5);
-  return fish;
+function createEnemyGroup(game) {
+  var enemy = game.add.physicsGroup(Phaser.Physics.ARCADE);
+  game.physics.arcade.enable(enemy);
+  return enemy;
+}
+
+function createEnemy(group) {
+  var enemy = group.create(game.world.randomX, game.world.randomY, 'enemy');
+  enemy.body.collideWorldBounds = true;
+  enemy.pursuitAngle = (Math.random() * 2 - 1) * Math.PI / 6;
+  enemy.anchor.setTo(0.5, 0.5);
+  return enemy;
 }
 
 function rotate(vec, angle) {
@@ -84,84 +95,83 @@ function rotate(vec, angle) {
   return new Phaser.Point(x1, y1);
 }
 
-function updateFishGroup(group) {
-  while(group.length < 15) createFish(group);
+function updateEnemyGroup(group) {
+  while(group.length < 15) createEnemy(group);
 
-  group.forEach(updateFish, this, true, group);
+  group.forEach(updateEnemy, this, true, group);
   game.physics.arcade.collide(group);
 
-  game.physics.arcade.overlap(flamingo, group, function (flamingo, fish) {
-    fish.kill();
-    group.remove(fish);
+  game.physics.arcade.overlap(player, group, function (player, enemy) {
+    enemy.kill();
+    group.remove(enemy);
     game.debug.text(--score, 10, 20);
   }, null, this);
 }
 
-function updateFish(fish, group) {
-  var attackFlamingo = new Phaser.Point(
-    flamingo.position.x - fish.position.x,
-    flamingo.position.y - fish.position.y
+function updateEnemy(enemy, group) {
+  var attackPlayer = new Phaser.Point(
+    player.position.x - enemy.position.x,
+    player.position.y - enemy.position.y
   );
 
-  attackFlamingo.setMagnitude(50);
-  attackFlamingo = rotate(attackFlamingo, fish.pursuitAngle);
+  attackPlayer.setMagnitude(50);
+  attackPlayer = rotate(attackPlayer, enemy.pursuitAngle);
 
   var avoidSwarm = new Phaser.Point();
 
-  group.forEach(function(fish2) {
-    if(fish != fish2) {
-      var avoidFish = new Phaser.Point(
-        fish.position.x - fish2.position.x,
-        fish.position.y - fish2.position.y
+  group.forEach(function(enemy2) {
+    if(enemy != enemy2) {
+      var avoidEnemy = new Phaser.Point(
+        enemy.position.x - enemy2.position.x,
+        enemy.position.y - enemy2.position.y
       );
 
-      avoidFish.setMagnitude(5);
+      avoidEnemy.setMagnitude(5);
 
-      avoidSwarm.add(avoidFish.x, avoidFish.y);
+      avoidSwarm.add(avoidEnemy.x, avoidEnemy.y);
     }
   });
 
   avoidSwarm.setMagnitude(40);
 
-  fish.body.velocity.add(attackFlamingo.x, attackFlamingo.y);
-  fish.body.velocity.add(avoidSwarm.x, avoidSwarm.y);
-  fish.body.velocity.setMagnitude(500);
+  enemy.body.velocity.add(attackPlayer.x, attackPlayer.y);
+  enemy.body.velocity.add(avoidSwarm.x, avoidSwarm.y);
+  enemy.body.velocity.setMagnitude(500);
 
-  var xFlip = fish.body.velocity.x > 0 ? -1 : 1;
-  fish.scale.x = xFlip;
+  if(enemy.body.velocity.x > 0) enemy.scale.x = -1;
+  if(enemy.body.velocity.x < 0) enemy.scale.x = +1;
 }
 
-function createShrimpGroup(game) {
-  var shrimp = game.add.physicsGroup();
-  game.physics.arcade.enable(shrimp);
-  return shrimp;
+function createFoodGroup(game) {
+  var food = game.add.physicsGroup();
+  game.physics.arcade.enable(food);
+  return food;
 }
 
-function createShrimp(group) {
-  var shrimp = group.create(game.world.randomX, game.world.randomY, 'shrimp');
-  shrimp.body.collideWorldBounds = true;
-  shrimp.anchor.setTo(0.5, 0.5);
-  return shrimp;
+function createFood(group) {
+  var food = group.create(game.world.randomX, game.world.randomY, 'food');
+  food.body.collideWorldBounds = true;
+  food.anchor.setTo(0.5, 0.5);
+  return food;
 }
 
-function updateShrimpGroup(group) {
-  while(group.length < 50) createShrimp(group);
+function updateFoodGroup(group) {
+  while(group.length < 100) createFood(group);
 
-  group.forEach(updateShrimp, this, true, group);
+  group.forEach(updateFood, this, true, group);
 
-  game.physics.arcade.overlap(flamingo, group, function (flamingo, shrimp) {
-    shrimp.kill();
-    group.remove(shrimp);
+  game.physics.arcade.overlap(player, group, function(player, food) {
+    food.kill();
+    group.remove(food);
     game.debug.text(++score, 10, 20);
   }, null, this);
 }
 
-function updateShrimp(shrimp, group) {
-  shrimp.body.velocity.x += Math.random() * 50 - 25;
-  shrimp.body.velocity.y += Math.random() * 50 - 25;
-
-  var xFlip = shrimp.body.velocity.x > 0 ? -1 : 1;
-  shrimp.scale.x = xFlip;
+function updateFood(food, group) {
+  food.body.velocity.x += Math.random() * 50 - 25;
+  food.body.velocity.y += Math.random() * 50 - 25;
+  if(food.body.velocity.x > 0) food.scale.x = -1;
+  if(food.body.velocity.x < 0) food.scale.x = +1;
 }
 
 function quit(pointer) {
